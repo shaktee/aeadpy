@@ -40,7 +40,6 @@
 #endif
 
 static PyObject *AesgcmpyError;
-static unsigned char outbuf[8192];
 static int Debug = 0;
 
 static PyObject *
@@ -74,6 +73,10 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
 	BIO_dump_fp(stdout, (const char *)aad, aadlen);
 	printf("Plaintext:\n");
 	BIO_dump_fp(stdout, (const char *)pt, ptlen);
+    }
+    unsigned char *outbuf = (unsigned char *)PyMem_Malloc(ptlen+16);
+    if(!outbuf) {
+      return PyErr_NoMemory();
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Set cipher type and mode */
@@ -111,6 +114,7 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
     }
     EVP_CIPHER_CTX_free(ctx);
     PyObject *ret = Py_BuildValue("{s:s#,s:s#, s:i}", "ciphertext", outbuf, outlen, "tag", tag, 16, "status", rv);
+    PyMem_Free(outbuf);
     return ret;
 }
 
@@ -131,6 +135,10 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
     if (Debug > 1) {
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, (const char *)ct, ctlen);
+    }
+    unsigned char *outbuf = (unsigned char *)PyMem_Malloc(ctlen);
+    if(!outbuf) {
+      return PyErr_NoMemory();
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
@@ -163,7 +171,9 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
      */
     if (Debug > 1) printf("Tag Verify %s\n", rv > 0 ? "Successful!" : "Failed!");
     EVP_CIPHER_CTX_free(ctx);
-    return Py_BuildValue("{s:s#, s:i}", "plaintext", outbuf, outlen, "status", rv);
+    PyObject *ret =  Py_BuildValue("{s:s#, s:i}", "plaintext", outbuf, outlen, "status", rv);
+    PyMem_Free(outbuf);
+    return ret;
 }
 
 int
@@ -245,6 +255,10 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
 	printf("Plaintext (%d):\n", ptlen);
 	BIO_dump_fp(stdout, pt.buf, ptlen);
     }
+    unsigned char *outbuf = (unsigned char *)PyMem_Malloc(ptlen+16);
+    if(!outbuf) {
+      return PyErr_NoMemory();
+    }
     ctx = EVP_CIPHER_CTX_new();
     /* Set cipher type and mode */
     switch (keylen) {
@@ -283,6 +297,7 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
     set_buf_to_testcase(testcase, "enc_ciphertext", outbuf, outlen);
     set_buf_to_testcase(testcase, "enc_tag", tag, 16);
     set_int_to_testcase(testcase, "enc_status", rv);
+    PyMem_Free(outbuf);
     Py_INCREF(Py_None);
     return Py_None;
 }
@@ -312,6 +327,10 @@ aes_gcm_testcase_decrypt(PyObject *self, PyObject *args)
 	BIO_dump_fp(stdout, ct.buf, ctlen-16);
 	printf("TAG (16):\n");
 	BIO_dump_fp(stdout, ct.buf+ctlen-16, 16);
+    }
+    unsigned char *outbuf = (unsigned char *)PyMem_Malloc(ctlen);
+    if(!outbuf) {
+      return PyErr_NoMemory();
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
@@ -350,6 +369,7 @@ aes_gcm_testcase_decrypt(PyObject *self, PyObject *args)
     EVP_CIPHER_CTX_free(ctx);
     set_buf_to_testcase(testcase, "dec_plaintext", outbuf, outlen);
     set_int_to_testcase(testcase, "dec_status", rv);
+    PyMem_Free(outbuf);
     Py_INCREF(Py_None);
     return Py_None;
 }
