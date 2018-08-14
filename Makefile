@@ -23,7 +23,7 @@ all: run
 bld:
 	$(PYTHON) setup.py build
 clean:
-	rm -rf build *~ core* *pyc
+	rm -rf build *~ core* *pyc __pycache__
 
 run: bld
 	$(PYTHON) $(SCRIPT) $(ARGS) $(TEST)

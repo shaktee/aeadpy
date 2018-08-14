@@ -30,7 +30,7 @@ debug = 0
 
 def test_with_params(testcase):
     enc_success, dec_success = 0, 0
-    if debug: print('Encrypt Test %d' % testcase.instance)
+    if debug: print('Encrypt Test %d' % testcase.instance, end=' ')
     rets = aesgcmpy.encrypt(testcase.key, testcase.plaintext, testcase.nonce, testcase.aad)
     ct = testcase.ctext_tag[:-16]
     tag = testcase.ctext_tag[-16:]
@@ -52,7 +52,7 @@ def test_with_params(testcase):
         enc_success += 1
         pass
 
-    if debug: print('Decrypt Test %d' % testcase.instance)
+    if debug: print('Decrypt Test %d' % testcase.instance, end=' ')
     rets = aesgcmpy.decrypt(testcase.key, ct, testcase.nonce, testcase.aad, tag)
     if rets['status'] != 1:
         print('FAILED - Bad status')
@@ -84,7 +84,7 @@ def test(testcases, objmode=True):
 
 def test_with_testcase(testcase):
     enc_success, dec_success = 0, 0
-    if debug: print('Encrypt Test %d' % testcase.instance)
+    if debug: print('Encrypt Test %d - ' % testcase.instance, end=' ')
     ct = testcase.ctext_tag[:-16]
     tag = testcase.ctext_tag[-16:]
     try:
@@ -114,7 +114,7 @@ def test_with_testcase(testcase):
         pass
 
     
-    if debug: print('Decrypt Test %d' % testcase.instance)
+    if debug: print('Decrypt Test %d' % testcase.instance, end=' ')
     try:
         rets = aesgcmpy.tc_decrypt(testcase)
         stat = ''
@@ -153,7 +153,7 @@ def usage(err=False):
     -h    - This help
     -d    - Enable Debug output. Can be called multiple times to increase verbosity
     -p    - Parameter mode (instead of the default object mode) to pass args to the C API
-    """ % (sys.argv[0] * 2)
+    """ % (sys.argv[0], sys.argv[0])
     print(ustr)
     sys.exit(-1 if err else 0)
     pass

@@ -57,7 +57,7 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
     unsigned char tag[16];
     const unsigned char *key, *pt, *aad, *iv;
     const int keylen, ptlen, aadlen, ivlen;
-    if (Debug) printf("AES GCM Encrypt:\n");
+    if (Debug > 1) printf("AES GCM Encrypt:\n");
     if (!PyArg_ParseTuple(args,
 #if PY_MAJOR_VERSION < 3
 			  "s#s#s#s#:encrypt",
@@ -148,7 +148,7 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
 	return NULL;
     }
 
-    if (Debug) printf("AES GCM Decrypt:\n");
+    if (Debug > 1) printf("AES GCM Decrypt:\n");
     if (Debug > 1) {
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, (const char *)ct, ctlen);
@@ -274,7 +274,7 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
 	return NULL;
     }
 
-    if (Debug) printf("AES GCM Testcase Encrypt:\n");
+    if (Debug > 1) printf("AES GCM Testcase Encrypt:\n");
     if (Debug > 1) {
 	printf("KEY (%d):\n", keylen);
 	BIO_dump_fp(stdout, key.buf, keylen);
@@ -351,7 +351,7 @@ aes_gcm_testcase_decrypt(PyObject *self, PyObject *args)
 	return NULL;
     }
 
-    if (Debug) printf("AES GCM Decrypt:\n");
+    if (Debug > 1) printf("AES GCM Decrypt:\n");
     if (Debug > 1) {
 	printf("Ciphertext (%d):\n", ctlen-16);
 	BIO_dump_fp(stdout, ct.buf, ctlen-16);

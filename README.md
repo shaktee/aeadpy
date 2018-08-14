@@ -31,7 +31,9 @@ bench by modeling the file similar to the ones provided.
 
 Simply type `make ` and it will make and run the test (assuming that you have the prerequisites installed)
 
-    rv@roke:~/aesgcmpy$ make
+But, to just build, the target is `make bld`. by default, it will build the extension for whatever version of python is installed in the path as `python`
+
+    rv@roke:~/aesgcmpy$ make bld
     python setup.py build
     running build
     running build_ext
@@ -41,19 +43,43 @@ Simply type `make ` and it will make and run the test (assuming that you have th
     x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -fno-strict-aliasing -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I/usr/include/python2.7 -c aesgcm_python.c -o build/temp.linux-x86_64-2.7/aesgcm_python.o
     creating build/lib.linux-x86_64-2.7
     x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -Wl,-z,relro -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -Wl,-Bsymbolic-functions -Wl,-z,relro -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security build/temp.linux-x86_64-2.7/aesgcm_python.o -lcrypto -o build/lib.linux-x86_64-2.7/aesgcmpy.so
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py ipsec_testcases
-    14/14/14 - EPASS/DPASS/TOTAL
 
+To specifically build for a different python version, you must specify `PYTHON=<pythonX.x>
 
-To run mcgrew_testcases, do the following
-
-
-    rv@roke:~/aesgcmpy$ make TEST=mcgrew_testcases
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py mcgrew_testcases
-    18/18/18 - EPASS/DPASS/TOTAL
-
+    rv@roke:~/aesgcmpy$ make PYTHON=python3 bld
+    python3 setup.py build
+    running build
+    running build_ext
+    building 'aesgcmpy' extension
+    creating build/temp.linux-x86_64-3.6
+    x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -g -fdebug-prefix-map=/build/python3.6-EKG1lX/python3.6-3.6.5=. -specs=/usr/share/dpkg/no-pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 -fPIC -DNDEBUG=1 -I/usr/include/python3.6m -c aesgcm_python.c -o build/temp.linux-x86_64-3.6/aesgcm_python.o
+    creating build/lib.linux-x86_64-3.6
+    x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -specs=/usr/share/dpkg/no-pie-link.specs -Wl,-z,relro -Wl,-Bsymbolic-functions -specs=/usr/share/dpkg/no-pie-link.specs -Wl,-z,relro -g -fdebug-prefix-map=/build/python3.6-EKG1lX/python3.6-3.6.5=. -specs=/usr/share/dpkg/no-pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 build/temp.linux-x86_64-3.6/aesgcm_python.o -lcrypto -o build/lib.linux-x86_64-3.6/aesgcmpy.cpython-36m-x86_64-linux-gnu.so
 
 ## Running the test
+
+To run testcases with the default python, call `make`
+    rv@roke:~/aesgcmpy$ make
+    python setup.py build
+    running build
+    running build_ext
+    python aesgcm.py  ipsec_testcases mcgrew_testcases
+    Using testcases from ipsec_testcases
+    14/14/14 - EPASS/DPASS/TOTAL
+    Using testcases from mcgrew_testcases
+    18/18/18 - EPASS/DPASS/TOTAL
+
+To run testcases with a specific version, call `make PYTHON=<pythonX>`
+
+    rv@roke:~/aesgcmpy$ make PYTHON=python3
+    python3 setup.py build
+    running build
+    running build_ext
+    python3 aesgcm.py  ipsec_testcases mcgrew_testcases
+    Using testcases from ipsec_testcases
+    14/14/14 - EPASS/DPASS/TOTAL
+    Using testcases from mcgrew_testcases
+    18/18/18 - EPASS/DPASS/TOTAL
 
 The default set of testcases is defined in testcases.py and passed to the script via the -t parameter, or via make, using the TEST variable (without the .py suffix)
 
@@ -64,94 +90,79 @@ The output of the test is a tuple of EPASS/DPASS/TOTAL, indicating the number of
 ## Debug and verbose output
 
 To enable debug and more verbose output pass -d (up to three times to increase verbosity of debug output) to the script (or via ARGS="-d" to make).
-
     rv@roke:~/aesgcmpy$ make ARGS=-d
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py -d ipsec_testcases
-    Encrypt Test 1 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 1 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 2 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 2 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 3 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 3 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 4 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 4 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 5 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 5 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 6 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 6 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 7 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 7 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 8 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 8 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 9 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 9 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 10 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 10 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 11 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 11 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 12 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 12 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 13 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 13 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
-    Encrypt Test 14 
-    AES GCM Testcase Encrypt:
-    PASS
-    Decrypt Test 14 
-    AES GCM Decrypt:
-    PASS - TAG verified, PASS - Data match
+    python setup.py build
+    running build
+    running build_ext
+    python aesgcm.py -d ipsec_testcases mcgrew_testcases
+    Using testcases from ipsec_testcases
+    Encrypt Test 1 -  PASS
+    Decrypt Test 1 PASS - TAG verified, PASS - Data match
+    Encrypt Test 2 -  PASS
+    Decrypt Test 2 PASS - TAG verified, PASS - Data match
+    Encrypt Test 3 -  PASS
+    Decrypt Test 3 PASS - TAG verified, PASS - Data match
+    Encrypt Test 4 -  PASS
+    Decrypt Test 4 PASS - TAG verified, PASS - Data match
+    Encrypt Test 5 -  PASS
+    Decrypt Test 5 PASS - TAG verified, PASS - Data match
+    Encrypt Test 6 -  PASS
+    Decrypt Test 6 PASS - TAG verified, PASS - Data match
+    Encrypt Test 7 -  PASS
+    Decrypt Test 7 PASS - TAG verified, PASS - Data match
+    Encrypt Test 8 -  PASS
+    Decrypt Test 8 PASS - TAG verified, PASS - Data match
+    Encrypt Test 9 -  PASS
+    Decrypt Test 9 PASS - TAG verified, PASS - Data match
+    Encrypt Test 10 -  PASS
+    Decrypt Test 10 PASS - TAG verified, PASS - Data match
+    Encrypt Test 11 -  PASS
+    Decrypt Test 11 PASS - TAG verified, PASS - Data match
+    Encrypt Test 12 -  PASS
+    Decrypt Test 12 PASS - TAG verified, PASS - Data match
+    Encrypt Test 13 -  PASS
+    Decrypt Test 13 PASS - TAG verified, PASS - Data match
+    Encrypt Test 14 -  PASS
+    Decrypt Test 14 PASS - TAG verified, PASS - Data match
     14/14/14 - EPASS/DPASS/TOTAL
+    Using testcases from mcgrew_testcases
+    Encrypt Test 15 -  PASS
+    Decrypt Test 15 PASS - TAG verified, PASS - Data match
+    Encrypt Test 16 -  PASS
+    Decrypt Test 16 PASS - TAG verified, PASS - Data match
+    Encrypt Test 17 -  PASS
+    Decrypt Test 17 PASS - TAG verified, PASS - Data match
+    Encrypt Test 18 -  PASS
+    Decrypt Test 18 PASS - TAG verified, PASS - Data match
+    Encrypt Test 19 -  PASS
+    Decrypt Test 19 PASS - TAG verified, PASS - Data match
+    Encrypt Test 20 -  PASS
+    Decrypt Test 20 PASS - TAG verified, PASS - Data match
+    Encrypt Test 21 -  PASS
+    Decrypt Test 21 PASS - TAG verified, PASS - Data match
+    Encrypt Test 22 -  PASS
+    Decrypt Test 22 PASS - TAG verified, PASS - Data match
+    Encrypt Test 23 -  PASS
+    Decrypt Test 23 PASS - TAG verified, PASS - Data match
+    Encrypt Test 24 -  PASS
+    Decrypt Test 24 PASS - TAG verified, PASS - Data match
+    Encrypt Test 25 -  PASS
+    Decrypt Test 25 PASS - TAG verified, PASS - Data match
+    Encrypt Test 26 -  PASS
+    Decrypt Test 26 PASS - TAG verified, PASS - Data match
+    Encrypt Test 27 -  PASS
+    Decrypt Test 27 PASS - TAG verified, PASS - Data match
+    Encrypt Test 28 -  PASS
+    Decrypt Test 28 PASS - TAG verified, PASS - Data match
+    Encrypt Test 29 -  PASS
+    Decrypt Test 29 PASS - TAG verified, PASS - Data match
+    Encrypt Test 30 -  PASS
+    Decrypt Test 30 PASS - TAG verified, PASS - Data match
+    Encrypt Test 31 -  PASS
+    Decrypt Test 31 PASS - TAG verified, PASS - Data match
+    Encrypt Test 32 -  PASS
+    Decrypt Test 32 PASS - TAG verified, PASS - Data match
+    18/18/18 - EPASS/DPASS/TOTAL
 
 ### More verbosity
 
