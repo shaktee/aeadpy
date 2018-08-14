@@ -4,7 +4,7 @@ AEAD (AES-GCM, Chacha20-Poly1305) Testcases with a python wrapper
 Description
 ===========
 This is a simple python based validation bench of openssl's AEAD
-implementation.
+implementation - both AES-GCM and Chacha20-Poly1305
 
 ## Prerequisites
 
@@ -33,37 +33,37 @@ Simply type `make ` and it will make and run the test (assuming that you have th
 
 But, to just build, the target is `make bld`. by default, it will build the extension for whatever version of python is installed in the path as `python`
 
-    rv@roke:~/aesgcmpy$ make bld
+    rv@roke:~/aeadpy$ make bld
     python setup.py build
     running build
     running build_ext
-    building 'aesgcmpy' extension
+    building 'aeadpy' extension
     creating build
     creating build/temp.linux-x86_64-2.7
-    x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -fno-strict-aliasing -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I/usr/include/python2.7 -c aesgcm_python.c -o build/temp.linux-x86_64-2.7/aesgcm_python.o
+    x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -fno-strict-aliasing -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I/usr/include/python2.7 -c aead_python.c -o build/temp.linux-x86_64-2.7/aead_python.o
     creating build/lib.linux-x86_64-2.7
-    x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -Wl,-z,relro -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -Wl,-Bsymbolic-functions -Wl,-z,relro -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security build/temp.linux-x86_64-2.7/aesgcm_python.o -lcrypto -o build/lib.linux-x86_64-2.7/aesgcmpy.so
+    x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -Wl,-z,relro -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -Wl,-Bsymbolic-functions -Wl,-z,relro -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security build/temp.linux-x86_64-2.7/aead_python.o -lcrypto -o build/lib.linux-x86_64-2.7/aeadpy.so
 
 To specifically build for a different python version, you must specify `PYTHON=<pythonX.x>
 
-    rv@roke:~/aesgcmpy$ make PYTHON=python3 bld
+    rv@roke:~/aeadpy$ make PYTHON=python3 bld
     python3 setup.py build
     running build
     running build_ext
-    building 'aesgcmpy' extension
+    building 'aeadpy' extension
     creating build/temp.linux-x86_64-3.6
-    x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -g -fdebug-prefix-map=/build/python3.6-EKG1lX/python3.6-3.6.5=. -specs=/usr/share/dpkg/no-pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 -fPIC -DNDEBUG=1 -I/usr/include/python3.6m -c aesgcm_python.c -o build/temp.linux-x86_64-3.6/aesgcm_python.o
+    x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -g -fdebug-prefix-map=/build/python3.6-EKG1lX/python3.6-3.6.5=. -specs=/usr/share/dpkg/no-pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 -fPIC -DNDEBUG=1 -I/usr/include/python3.6m -c aead_python.c -o build/temp.linux-x86_64-3.6/aead_python.o
     creating build/lib.linux-x86_64-3.6
-    x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -specs=/usr/share/dpkg/no-pie-link.specs -Wl,-z,relro -Wl,-Bsymbolic-functions -specs=/usr/share/dpkg/no-pie-link.specs -Wl,-z,relro -g -fdebug-prefix-map=/build/python3.6-EKG1lX/python3.6-3.6.5=. -specs=/usr/share/dpkg/no-pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 build/temp.linux-x86_64-3.6/aesgcm_python.o -lcrypto -o build/lib.linux-x86_64-3.6/aesgcmpy.cpython-36m-x86_64-linux-gnu.so
+    x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -specs=/usr/share/dpkg/no-pie-link.specs -Wl,-z,relro -Wl,-Bsymbolic-functions -specs=/usr/share/dpkg/no-pie-link.specs -Wl,-z,relro -g -fdebug-prefix-map=/build/python3.6-EKG1lX/python3.6-3.6.5=. -specs=/usr/share/dpkg/no-pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 build/temp.linux-x86_64-3.6/aead_python.o -lcrypto -o build/lib.linux-x86_64-3.6/aeadpy.cpython-36m-x86_64-linux-gnu.so
 
 ## Running the test
 
 To run testcases with the default python, call `make`
-    rv@roke:~/aesgcmpy$ make
+    rv@roke:~/aeadpy$ make
     python setup.py build
     running build
     running build_ext
-    python aesgcm.py  ipsec_testcases mcgrew_testcases
+    python aead.py  ipsec_testcases mcgrew_testcases
     Using testcases from ipsec_testcases
     14/14/14 - EPASS/DPASS/TOTAL
     Using testcases from mcgrew_testcases
@@ -71,11 +71,11 @@ To run testcases with the default python, call `make`
 
 To run testcases with a specific version, call `make PYTHON=<pythonX>`
 
-    rv@roke:~/aesgcmpy$ make PYTHON=python3
+    rv@roke:~/aeadpy$ make PYTHON=python3
     python3 setup.py build
     running build
     running build_ext
-    python3 aesgcm.py  ipsec_testcases mcgrew_testcases
+    python3 aead.py  ipsec_testcases mcgrew_testcases
     Using testcases from ipsec_testcases
     14/14/14 - EPASS/DPASS/TOTAL
     Using testcases from mcgrew_testcases
@@ -91,11 +91,11 @@ The output of the test is a tuple of EPASS/DPASS/TOTAL, indicating the number of
 
 To enable debug and more verbose output pass -d (up to three times to increase verbosity of debug output) to the script (or via ARGS="-d" to make).
 
-    rv@roke:~/aesgcmpy$ make ARGS=-d
+    rv@roke:~/aeadpy$ make ARGS=-d
     python setup.py build
     running build
     running build_ext
-    python aesgcm.py -d ipsec_testcases mcgrew_testcases
+    python aead.py -d ipsec_testcases mcgrew_testcases
     Using testcases from ipsec_testcases
     Encrypt Test 1 -  PASS
     Decrypt Test 1 PASS - TAG verified, PASS - Data match
@@ -169,8 +169,8 @@ To enable debug and more verbose output pass -d (up to three times to increase v
 
 For more verbosity, add -d to the ARGS
 
-    rv@roke:~/aesgcmpy$ make ARGS="-d -d"
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py -d -d ipsec_testcases
+    rv@roke:~/aeadpy$ make ARGS="-d -d"
+    PYTHONPATH=build/lib.linux-x86_64-2.7 python aead.py -d -d ipsec_testcases
     Encrypt Test 1 
     AES GCM Testcase Encrypt:
     KEY (16):
