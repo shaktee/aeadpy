@@ -19,6 +19,9 @@ import os
 if 'OPENSSL_INCLUDE' in os.environ:
     openssl_include = [os.environ['OPENSSL_INCLUDE']]
     openssl_lib = ["%s/../lib" % os.environ['OPENSSL_INCLUDE']]
+elif os.path.exists("/usr/local/opt/openssl@1.1"):
+    openssl_lib  =['/usr/local/opt/openssl@1.1/lib']
+    openssl_include = ["/usr/local/opt/openssl@1.1/include"]
 elif os.path.exists("/usr/local/opt/openssl"):
     openssl_lib  =['/usr/local/opt/openssl/lib']
     openssl_include = ["/usr/local/opt/openssl/include"]
