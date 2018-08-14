@@ -31,7 +31,7 @@ debug = 0
 def test_with_params(testcase):
     enc_success, dec_success = 0, 0
     if debug: print('Encrypt Test %d' % testcase.instance, end=' ')
-    rets = aesgcmpy.encrypt(testcase.key, testcase.plaintext, testcase.nonce, testcase.aad)
+    rets = aeadpy.encrypt(testcase.algorithm, testcase.key, testcase.plaintext, testcase.nonce, testcase.aad)
     ct = testcase.ctext_tag[:-16]
     tag = testcase.ctext_tag[-16:]
 
@@ -53,7 +53,7 @@ def test_with_params(testcase):
         pass
 
     if debug: print('Decrypt Test %d' % testcase.instance, end=' ')
-    rets = aesgcmpy.decrypt(testcase.key, ct, testcase.nonce, testcase.aad, tag)
+    rets = aeadpy.decrypt(testcase.algorithm, testcase.key, ct, testcase.nonce, testcase.aad, tag)
     if rets['status'] != 1:
         print('FAILED - Bad status')
     elif rets['plaintext'] != testcase.plaintext:
@@ -70,6 +70,10 @@ def test_with_params(testcase):
 def test(testcases, objmode=True):
     (total, enc_success, dec_success) = (0, 0, 0)
     for testcase in testcases:
+        if not hasattr(testcase, 'algorithm'):
+            setattr(testcase, 'algorithm', "AES-GCM")
+            pass
+        
         total += 1
         if debug > 2:
             print(testcase)
@@ -88,7 +92,7 @@ def test_with_testcase(testcase):
     ct = testcase.ctext_tag[:-16]
     tag = testcase.ctext_tag[-16:]
     try:
-        aesgcmpy.tc_encrypt(testcase)
+        aeadpy.tc_encrypt(testcase)
     
         if testcase.enc_status != 1:
             print('FAILED - Bad status %d' % testcase.enc_status)
@@ -116,7 +120,7 @@ def test_with_testcase(testcase):
     
     if debug: print('Decrypt Test %d' % testcase.instance, end=' ')
     try:
-        rets = aesgcmpy.tc_decrypt(testcase)
+        aeadpy.tc_decrypt(testcase)
         stat = ''
         if testcase.dec_status != 1:
             stat = 'FAIL - Bad status (continue to check plaintext)'
@@ -164,8 +168,8 @@ if __name__ == '__main__':
     import re
 
     set_libdir() # need to set appropriate lib directory for use with
-                 # python 2 or 3 before importing aesgcmpy
-    import aesgcmpy
+                 # python 2 or 3 before importing aeadpy
+    import aeadpy
 
     default_testcases_file = ['ipsec_testcases']
     objmode = True
@@ -178,7 +182,7 @@ if __name__ == '__main__':
         if k == '-h':
             usage()
         elif k == '-d':
-            aesgcmpy.debug()
+            aeadpy.debug()
             debug += 1
         elif k == '-p':
             objmode = False

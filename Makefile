@@ -16,7 +16,7 @@
 SCRIPT := aesgcm.py
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
-TEST := ipsec_testcases mcgrew_testcases
+TEST := mcgrew_testcases ipsec_testcases
 PYTHON := python
 all: run
 

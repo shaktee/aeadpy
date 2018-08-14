@@ -346,4 +346,67 @@ testcases = [
                  9fb4c053""",
 
     ),
+
+    # From https://tools.ietf.org/html/rfc7634#page-9
+    Testcase(
+        algorithm = 'CHACHA20_POLY1305',
+        plaintext = """
+        45 00 00 54 a6 f2 00 00 40 01 e7 78 c6 33 64 05
+        c0 00 02 05 08 00 5b 7a 3a 08 00 00 55 3b ec 10
+        00 07 36 27 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13
+        14 15 16 17 18 19 1a 1b 1c 1d 1e 1f 20 21 22 23
+        24 25 26 27 28 29 2a 2b 2c 2d 2e 2f 30 31 32 33
+        34 35 36 37 01 02 02 04        """,
+        key = """
+        80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+        90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+        a0 a1 a2 a3
+        """,
+        aad = """01 02 03 04 00 00 00 05
+        """,
+        nonce = """a0 a1 a2 a3 10 11 12 13 14 15 16 17
+        """,
+        ctext_tag = """
+        24 03 94 28 b9 7f 41 7e 3c 13 75 3a 4f 05 08 7b
+        67 c3 52 e6 a7 fa b1 b9 82 d4 66 ef 40 7a e5 c6
+        14 ee 80 99 d5 28 44 eb 61 aa 95 df ab 4c 02 f7
+        2a a7 1e 7c 4c 4f 64 c9 be fe 2f ac c6 38 e8 f3
+        cb ec 16 3f ac 46 9b 50 27 73 f6 fb 94 e6 64 da
+        91 65 b8 28 29 f6 41 e0
+        76 aa a8 26 6b 7f b0 f7 b1 1b 36 99 07 e1 ad 43        
+        """,
+        ),
+
+    # From https://tools.ietf.org/html/rfc7539#page-22
+    # Testcase(
+    #     algorithm = 'CHACHA20_POLY1305',
+    #     plaintext = """
+    #     4c 61 64 69 65 73 20 61 6e 64 20 47 65 6e 74 6c
+    #     65 6d 65 6e 20 6f 66 20 74 68 65 20 63 6c 61 73
+    #     73 20 6f 66 20 27 39 39 3a 20 49 66 20 49 20 63
+    #     6f 75 6c 64 20 6f 66 66 65 72 20 79 6f 75 20 6f
+    #     6e 6c 79 20 6f 6e 65 20 74 69 70 20 66 6f 72 20
+    #     74 68 65 20 66 75 74 75 72 65 2c 20 73 75 6e 73
+    #     63 72 65 65 6e 20 77 6f 75 6c 64 20 62 65 20 69
+    #     74 2e""",
+
+    #     aad = """  50 51 52 53 c0 c1 c2 c3 c4 c5 c6 c7""",
+
+    #     key = """
+    #     80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+    #     90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f""",
+
+    #     nonce = "  40 41 42 43 44 45 46 47",
+    #     ctext_tag = """
+    #     d3 1a 8d 34 64 8e 60 db 7b 86 af bc 53 ef 7e c2
+    #     a4 ad ed 51 29 6e 08 fe a9 e2 b5 a7 36 ee 62 d6
+    #     3d be a4 5e 8c a9 67 12 82 fa fb 69 da 92 72 8b
+    #     1a 71 de 0a 9e 06 0b 29 05 d6 a5 b6 7e cd 3b 36
+    #     92 dd bd 7f 2d 77 8b 8c 98 03 ae e3 28 09 1b 58
+    #     fa b3 24 e4 fa d6 75 94 55 85 80 8b 48 31 d7 bc
+    #     3f f4 de f0 8e 4b 7a 9d e5 76 d2 65 86 ce c6 4b
+    #     61 16
+    #     1a e1 0b 59 4f 09 e2 6a 7e 90 2e cb d0 60 06 91
+    #     """,
+    # ),
 ]

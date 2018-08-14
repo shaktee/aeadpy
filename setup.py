@@ -26,18 +26,18 @@ else:
     openssl_include = openssl_lib = []
 
 
-module1 = Extension('aesgcmpy',
+module1 = Extension('aeadpy',
                     define_macros=[('NDEBUG', '1')],
                     include_dirs = openssl_include,
                     library_dirs = openssl_lib,
                     libraries = ['crypto'],
                     sources = ['aesgcm_python.c'])
 
-setup (name = 'Aesgcmpy',
+setup (name = 'Aeadpy',
        version = '1.0',
        description = """This is a python-based AES-GCM test bench to test openssl's implementation of AES-GCM""",
        author='Rajesh Vaidheeswarran',
        author_email='rv@gnu.org',
-       url='https://github.com/shaktee/aesgcmpy.git',
+       url='https://github.com/shaktee/aeadpy.git',
        ext_modules = [module1])
 

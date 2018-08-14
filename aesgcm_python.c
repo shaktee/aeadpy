@@ -1,7 +1,7 @@
-/*
- * Python-based AES-GCM testbench for testing OpenSSL's AES-GCM
+/* -*- c-basic-offset: 4 -*-
+ * Python-based AEAD testbench for testing OpenSSL's AEAD (AES-GCM, Chacha20-Poly1305)
  * implementation (and serve as a reference implementation to test
- * your own AES-GCM implementation)
+ * your own AEAD implementation)
  *
  * Copyright (C) 2018 Rajesh Vaidheeswarrana
  * 
@@ -39,37 +39,59 @@
 #define EVP_CTRL_AEAD_GET_TAG EVP_CTRL_GCM_GET_TAG
 #endif
 
-static PyObject *AesgcmpyError;
+static PyObject *AeadpyError;
 static int Debug = 0;
 
+static void
+set_cipher(EVP_CIPHER_CTX *ctx, const char *alg, int keylen)
+{
+   /* Set cipher type and mode */
+    if (strcmp(alg, "CHACHA20_POLY1305") == 0) {
+	EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL);
+    } else {
+	switch (keylen) {
+	case 16:
+	    EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
+	    break;
+	case 24:
+	    EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
+	    break;
+	case 32:
+	    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
+	    break;
+	}
+    }
+}
+
 static PyObject *
-aes_debug(PyObject *self, PyObject *args)
+aead_debug(PyObject *self, PyObject *args)
 {
     Debug++;
     return Py_BuildValue("i", Debug);
 }
 
 static PyObject *
-aes_gcm_encrypt(PyObject *self, PyObject *args)
+aead_encrypt(PyObject *self, PyObject *args)
 {
     EVP_CIPHER_CTX *ctx;
     int outlen, rv, olen;
     unsigned char tag[16];
     const unsigned char *key, *pt, *aad, *iv;
+    const char *alg;
     const int keylen, ptlen, aadlen, ivlen;
-    if (Debug > 1) printf("AES GCM Encrypt:\n");
     if (!PyArg_ParseTuple(args,
 #if PY_MAJOR_VERSION < 3
-			  "s#s#s#s#:encrypt",
+			  "ss#s#s#s#:encrypt",
 #else
-			  "y#y#y#y#:encrypt",
+			  "yy#y#y#y#:encrypt",
 #endif
-			  &key, &keylen, &pt, &ptlen,
+			  &alg, &key, &keylen, &pt, &ptlen,
 			  &iv, &ivlen, &aad, &aadlen)) {
-	PyErr_SetString(AesgcmpyError, "Usage: encrypt <key> <data> <iv> <aad>");
+	PyErr_SetString(AeadpyError, "Usage: encrypt <key> <data> <iv> <aad>");
 	return NULL;
     }
     if (Debug > 1) {
+        printf("%s Encrypt:\n", alg);
 	printf("KEY:\n");
 	BIO_dump_fp(stdout, (const char *)key, keylen);
 	printf("IV:\n");
@@ -84,19 +106,8 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
       return PyErr_NoMemory();
     }
     ctx = EVP_CIPHER_CTX_new();
-    /* Set cipher type and mode */
-    switch (keylen) {
-    case 16:
-	EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
-	break;
-    case 24:
-	EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
-	break;
-    case 32:
-	EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-	break;
-    }
-    /* Set IV length if default 96 bits is not appropriate */
+    set_cipher(ctx, alg, keylen);
+     /* Set IV length if default 96 bits is not appropriate */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Initialise key and IV */
     EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv);
@@ -130,26 +141,27 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-aes_gcm_decrypt(PyObject *self, PyObject *args)
+aead_decrypt(PyObject *self, PyObject *args)
 {
     EVP_CIPHER_CTX *ctx;
     int outlen, rv, olen;
+    char *alg;
     unsigned char *key, *ct, *aad, *iv, *tag;
     int keylen, ctlen, aadlen, ivlen, taglen;
     if (!PyArg_ParseTuple(args,
 #if PY_MAJOR_VERSION < 3
-			  "s#s#s#s#s#:decrypt",
+			  "ss#s#s#s#s#:decrypt",
 #else
-			  "y#y#y#y#y#:decrypt",
+			  "yy#y#y#y#y#:decrypt",
 #endif
-			  &key, &keylen, &ct, &ctlen,
+			  &alg, &key, &keylen, &ct, &ctlen,
 			  &iv, &ivlen, &aad, &aadlen, &tag, &taglen)) {
-	PyErr_SetString(AesgcmpyError, "Usage: decrypt <key> <data> <iv> <aad> <tag>");
+	PyErr_SetString(AeadpyError, "Usage: decrypt <key> <data> <iv> <aad> <tag>");
 	return NULL;
     }
 
-    if (Debug > 1) printf("AES GCM Decrypt:\n");
     if (Debug > 1) {
+	printf("%s Decrypt:\n", alg);
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, (const char *)ct, ctlen);
     }
@@ -159,17 +171,7 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
-    switch (keylen) {
-    case 16:
-	EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
-	break;
-    case 24:
-	EVP_DecryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
-	break;
-    case 32:
-	EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-	break;
-    }
+    set_cipher(ctx, alg, keylen);
     /* Set IV length, omit for 96 bits */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Specify key and IV */
@@ -199,7 +201,7 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
     return ret;
 }
 
-int
+static int
 set_buf_to_testcase(PyObject *testcase, const char *key, const unsigned char *buffer, const int len)
 {
     char error[256];
@@ -211,37 +213,55 @@ set_buf_to_testcase(PyObject *testcase, const char *key, const unsigned char *bu
 #endif
 							    buffer, len)) == -1) {
 	sprintf(error, "cannot set %s in testcase", key);
-	PyErr_SetString(AesgcmpyError, error);
+	PyErr_SetString(AeadpyError, error);
 	return -1;
     }
     return 1;
 }
 
-int
+static int
 set_int_to_testcase(PyObject *testcase, const char *key, const int val)
 {
     char error[256];
     if (PyObject_SetAttrString(testcase, key, PyLong_FromLong(val)) == -1) {
 	sprintf(error, "cannot set %s in testcase", key);
-	PyErr_SetString(AesgcmpyError, error);
+	PyErr_SetString(AeadpyError, error);
 	return -1;
     }
     return 1;
 }
 
-int
+static PyObject *
+get_str_from_testcase(PyObject *testcase, const char *key)
+{
+    char error[256];
+    PyObject *obj = PyObject_GetAttrString(testcase, key);
+    if (obj == NULL) {
+	sprintf(error, "testcase does not have member '%s'", key);
+	printf("%s\n", error);
+	PyErr_SetString(AeadpyError, error);
+	return NULL;
+    }
+    else {
+	return PyObject_Str(obj);
+    }
+}
+
+static int
 get_from_testcase(PyObject *testcase, const char *key, Py_buffer *buf, int *len)
 {
     char error[256];
     PyObject *obj = PyObject_GetAttrString(testcase, key);
     if (obj == NULL) {
 	sprintf(error, "testcase does not have member '%s'", key);
-	PyErr_SetString(AesgcmpyError, error);
+	printf("%s\n", error);
+	PyErr_SetString(AeadpyError, error);
 	return 0;
     }
     if (!PyObject_CheckBuffer(obj)) {
 	sprintf(error, "%s does not have a buffer interface", key);
-	PyErr_SetString(AesgcmpyError, error);
+	printf("%s\n", error);
+	PyErr_SetString(AeadpyError, error);
 	return 0;
     }
     if (PyObject_GetBuffer(obj, buf, PyBUF_SIMPLE) == 0) {
@@ -249,24 +269,26 @@ get_from_testcase(PyObject *testcase, const char *key, Py_buffer *buf, int *len)
 	return 1;
     }
     //sprintf(error, "unable to get buffer for member %s ", key);
-    //PyErr_SetString(AesgcmpyError, error);
+    //PyErr_SetString(AeadpyError, error);
     return 0;
 }
 
 static PyObject *
-aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
+aead_testcase_encrypt(PyObject *self, PyObject *args)
 {
     EVP_CIPHER_CTX *ctx;
     int outlen, rv, olen;
     unsigned char tag[16];
-    PyObject *testcase;
+    char *alg;
+    PyObject *testcase, *algo;
     Py_buffer key, pt, aad, iv;
     int keylen, ptlen, aadlen, ivlen;
     if (!PyArg_ParseTuple(args, "O:tc_encrypt", &testcase)) {
-	PyErr_SetString(AesgcmpyError, "Usage: tc_encrypt <testcase>");
+	PyErr_SetString(AeadpyError, "Usage: tc_encrypt <testcase>");
 	return NULL;
     }
     if (! (
+	   (algo = get_str_from_testcase(testcase, "algorithm")) &&
 	   get_from_testcase(testcase, "plaintext", &pt, &ptlen) &&
 	   get_from_testcase(testcase, "key", &key, &keylen) &&
 	   get_from_testcase(testcase, "nonce", &iv, &ivlen) &&
@@ -274,8 +296,9 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
 	return NULL;
     }
 
-    if (Debug > 1) printf("AES GCM Testcase Encrypt:\n");
+    alg = PyString_AsString(algo);
     if (Debug > 1) {
+	printf("%s Testcase Encrypt:\n", alg);
 	printf("KEY (%d):\n", keylen);
 	BIO_dump_fp(stdout, key.buf, keylen);
 	printf("IV (%d):\n", ivlen);
@@ -291,17 +314,7 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Set cipher type and mode */
-    switch (keylen) {
-    case 16:
-	EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
-	break;
-    case 24:
-	EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
-	break;
-    case 32:
-	EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-	break;
-    }
+    set_cipher(ctx, alg, keylen);
     /* Set IV length if default 96 bits is not appropriate */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Initialise key and IV */
@@ -333,26 +346,27 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-aes_gcm_testcase_decrypt(PyObject *self, PyObject *args)
+aead_testcase_decrypt(PyObject *self, PyObject *args)
 {
     EVP_CIPHER_CTX *ctx;
     int outlen, rv, olen;
     PyObject *testcase;
-    Py_buffer key, ct, aad, iv;
-    int keylen, ctlen, aadlen, ivlen;
+    Py_buffer alg, key, ct, aad, iv;
+    int alglen, keylen, ctlen, aadlen, ivlen;
     if (!PyArg_ParseTuple(args, "O:tc_decrypt", &testcase)) {
-	PyErr_SetString(AesgcmpyError, "Usage: tc_encrypt <testcase>");
+	PyErr_SetString(AeadpyError, "Usage: tc_encrypt <testcase>");
 	return NULL;
     }
     if (! (get_from_testcase(testcase, "key", &key, &keylen) &&
+	   get_from_testcase(testcase, "algorithm", &alg, &alglen) &&
 	   get_from_testcase(testcase, "ctext_tag", &ct, &ctlen) &&
 	   get_from_testcase(testcase, "nonce", &iv, &ivlen) &&
 	   get_from_testcase(testcase, "aad", &aad, &aadlen))) {
 	return NULL;
     }
 
-    if (Debug > 1) printf("AES GCM Decrypt:\n");
     if (Debug > 1) {
+	printf("%s Decrypt:\n", (char *)alg.buf);
 	printf("Ciphertext (%d):\n", ctlen-16);
 	BIO_dump_fp(stdout, ct.buf, ctlen-16);
 	printf("TAG (16):\n");
@@ -364,17 +378,7 @@ aes_gcm_testcase_decrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
-    switch (keylen) {
-    case 16:
-	EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
-	break;
-    case 24:
-	EVP_DecryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
-	break;
-    case 32:
-	EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-	break;
-    }
+    set_cipher(ctx, alg.buf, keylen);
     /* Set IV length, omit for 96 bits */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Specify key and IV */
@@ -404,25 +408,25 @@ aes_gcm_testcase_decrypt(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyMethodDef AesGcmMethods[] = {
-    {"encrypt",  aes_gcm_encrypt, METH_VARARGS, "Encrypt with AES-GCM."},
-    {"decrypt",  aes_gcm_decrypt, METH_VARARGS, "Decrypt with AES-GCM."},
-    {"tc_encrypt",  aes_gcm_testcase_encrypt, METH_VARARGS, "Encrypt testcase with AES-GCM."},
-    {"tc_decrypt",  aes_gcm_testcase_decrypt, METH_VARARGS, "Decrypt testcase with AES-GCM."},
-    {"debug",    aes_debug,       METH_VARARGS, "Debug."},
+static PyMethodDef AeadMethods[] = {
+    {"encrypt",  aead_encrypt, METH_VARARGS, "Encrypt with AES-GCM or CHACHA20_POLY1305."},
+    {"decrypt",  aead_decrypt, METH_VARARGS, "Decrypt with AES-GCM or CHACHA20_POLY1305."},
+    {"tc_encrypt",  aead_testcase_encrypt, METH_VARARGS, "Encrypt testcase with AES-GCM or CHACHA20_POLY1305."},
+    {"tc_decrypt",  aead_testcase_decrypt, METH_VARARGS, "Decrypt testcase with AES-GCM or CHACHA20_POLY1305."},
+    {"debug",    aead_debug,       METH_VARARGS, "Debug."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 #if PY_MAJOR_VERSION < 3
 PyMODINIT_FUNC
-initaesgcmpy(void)
+initaeadpy(void)
 {
     PyObject *m;
-    m = Py_InitModule("aesgcmpy", AesGcmMethods);
+    m = Py_InitModule("aeadpy", AeadMethods);
     if (m == NULL) return;
-    AesgcmpyError = PyErr_NewException("AesgcmpyError.error", NULL, NULL);
-    Py_INCREF(AesgcmpyError);
-    PyModule_AddObject(m, "error", AesgcmpyError);
+    AeadpyError = PyErr_NewException("AeadpyError.error", NULL, NULL);
+    Py_INCREF(AeadpyError);
+    PyModule_AddObject(m, "error", AeadpyError);
 }
 
 int
@@ -435,25 +439,25 @@ main(int argc, char *argv[])
     Py_Initialize();
 
     /* Add a static module */
-    initaesgcmpy();
+    initaeadpy();
     return 0;
 }
 
 #else
 
-static struct PyModuleDef aesgcmpy = {
+static struct PyModuleDef aeadpy = {
   PyModuleDef_HEAD_INIT,
-  "aesgcmpy",   /* name of module */
+  "aeadpy",   /* name of module */
   NULL, /* module documentation, may be NULL */
   -1,       /* size of per-interpreter state of the module,
 	       or -1 if the module keeps state in global variables. */
-  AesGcmMethods
+  AeadMethods
 };
 
 PyMODINIT_FUNC
-PyInit_aesgcmpy(void)
+PyInit_aeadpy(void)
 {
-  return PyModule_Create(&aesgcmpy);
+  return PyModule_Create(&aeadpy);
 }
 
 int
@@ -466,7 +470,7 @@ main(int argc, char *argv[])
   }
 
   /* Add a built-in module, before Py_Initialize */
-  PyImport_AppendInittab("aesgcmpy", PyInit_aesgcmpy);
+  PyImport_AppendInittab("aeadpy", PyInit_aeadpy);
 
   /* Pass argv[0] to the Python interpreter */
   Py_SetProgramName(program);
