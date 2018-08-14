@@ -59,6 +59,8 @@ The default set of testcases is defined in testcases.py and passed to the script
 
 To use a specific test case file, pass it in to make via `make run TEST=<x>`
 
+The output of the test is a tuple of EPASS/DPASS/TOTAL, indicating the number of tests that passed encryption testing, decryption testing and the total number of test cases run.
+
 ## Debug and verbose output
 
 To enable debug and more verbose output pass -d (up to three times to increase verbosity of debug output) to the script (or via ARGS="-d" to make).
