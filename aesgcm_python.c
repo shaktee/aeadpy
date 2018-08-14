@@ -56,14 +56,19 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
     int outlen, rv, olen;
     unsigned char tag[16];
     const unsigned char *key, *pt, *aad, *iv;
-    const int keylen = 16, ptlen = 0, aadlen = 0, ivlen = 0;
-    if (!PyArg_ParseTuple(args, "s#s#s#s#:encrypt", &key, &keylen, &pt, &ptlen,
+    const int keylen, ptlen, aadlen, ivlen;
+    if (Debug) printf("AES GCM Encrypt:\n");
+    if (!PyArg_ParseTuple(args,
+#if PY_MAJOR_VERSION < 3
+			  "s#s#s#s#:encrypt",
+#else
+			  "y#y#y#y#:encrypt",
+#endif
+			  &key, &keylen, &pt, &ptlen,
 			  &iv, &ivlen, &aad, &aadlen)) {
 	PyErr_SetString(AesgcmpyError, "Usage: encrypt <key> <data> <iv> <aad>");
 	return NULL;
     }
-
-    if (Debug) printf("AES GCM Encrypt:\n");
     if (Debug > 1) {
 	printf("KEY:\n");
 	BIO_dump_fp(stdout, (const char *)key, keylen);
@@ -113,7 +118,13 @@ aes_gcm_encrypt(PyObject *self, PyObject *args)
 	BIO_dump_fp(stdout, (const char *)tag, 16);
     }
     EVP_CIPHER_CTX_free(ctx);
-    PyObject *ret = Py_BuildValue("{s:s#,s:s#, s:i}", "ciphertext", outbuf, outlen, "tag", tag, 16, "status", rv);
+    PyObject *ret = Py_BuildValue(
+#if PY_MAJOR_VERSION < 3
+				  "{s:s#,s:s#, s:i}",
+#else
+				  "{s:y#,s:y#, s:i}",
+#endif
+				  "ciphertext", outbuf, outlen, "tag", tag, 16, "status", rv);
     PyMem_Free(outbuf);
     return ret;
 }
@@ -125,7 +136,13 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
     int outlen, rv, olen;
     unsigned char *key, *ct, *aad, *iv, *tag;
     int keylen, ctlen, aadlen, ivlen, taglen;
-    if (!PyArg_ParseTuple(args, "s#s#s#s#s#:decrypt", &key, &keylen, &ct, &ctlen,
+    if (!PyArg_ParseTuple(args,
+#if PY_MAJOR_VERSION < 3
+			  "s#s#s#s#s#:decrypt",
+#else
+			  "y#y#y#y#y#:decrypt",
+#endif
+			  &key, &keylen, &ct, &ctlen,
 			  &iv, &ivlen, &aad, &aadlen, &tag, &taglen)) {
 	PyErr_SetString(AesgcmpyError, "Usage: decrypt <key> <data> <iv> <aad> <tag>");
 	return NULL;
@@ -170,9 +187,15 @@ aes_gcm_decrypt(PyObject *self, PyObject *args)
      * failed and plaintext is not trustworthy.
      */
     if (Debug > 1) printf("Tag Verify %s\n", rv > 0 ? "Successful!" : "Failed!");
-    EVP_CIPHER_CTX_free(ctx);
-    PyObject *ret =  Py_BuildValue("{s:s#, s:i}", "plaintext", outbuf, outlen, "status", rv);
+    PyObject *ret =  Py_BuildValue(
+#if PY_MAJOR_VERSION < 3
+				   "{s:s#, s:i}",
+#else
+				   "{s:y#, s:i}",
+#endif
+				   "plaintext", outbuf, outlen, "status", rv);
     PyMem_Free(outbuf);
+    EVP_CIPHER_CTX_free(ctx);
     return ret;
 }
 
@@ -180,7 +203,13 @@ int
 set_buf_to_testcase(PyObject *testcase, const char *key, const unsigned char *buffer, const int len)
 {
     char error[256];
-    if (PyObject_SetAttrString(testcase, key, Py_BuildValue("s#", buffer, len)) == -1) {
+    if (PyObject_SetAttrString(testcase, key, Py_BuildValue(
+#if PY_MAJOR_VERSION < 3
+							    "s#",
+#else
+							    "y#",
+#endif
+							    buffer, len)) == -1) {
 	sprintf(error, "cannot set %s in testcase", key);
 	PyErr_SetString(AesgcmpyError, error);
 	return -1;
@@ -206,7 +235,7 @@ get_from_testcase(PyObject *testcase, const char *key, Py_buffer *buf, int *len)
     char error[256];
     PyObject *obj = PyObject_GetAttrString(testcase, key);
     if (obj == NULL) {
-	sprintf(error, "testcase does not have member %s", key);
+	sprintf(error, "testcase does not have member '%s'", key);
 	PyErr_SetString(AesgcmpyError, error);
 	return 0;
     }
@@ -237,8 +266,9 @@ aes_gcm_testcase_encrypt(PyObject *self, PyObject *args)
 	PyErr_SetString(AesgcmpyError, "Usage: tc_encrypt <testcase>");
 	return NULL;
     }
-    if (! (get_from_testcase(testcase, "key", &key, &keylen) &&
+    if (! (
 	   get_from_testcase(testcase, "plaintext", &pt, &ptlen) &&
+	   get_from_testcase(testcase, "key", &key, &keylen) &&
 	   get_from_testcase(testcase, "nonce", &iv, &ivlen) &&
 	   get_from_testcase(testcase, "aad", &aad, &aadlen))) {
 	return NULL;
@@ -383,6 +413,7 @@ static PyMethodDef AesGcmMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION < 3
 PyMODINIT_FUNC
 initaesgcmpy(void)
 {
@@ -407,3 +438,49 @@ main(int argc, char *argv[])
     initaesgcmpy();
     return 0;
 }
+
+#else
+
+static struct PyModuleDef aesgcmpy = {
+  PyModuleDef_HEAD_INIT,
+  "aesgcmpy",   /* name of module */
+  NULL, /* module documentation, may be NULL */
+  -1,       /* size of per-interpreter state of the module,
+	       or -1 if the module keeps state in global variables. */
+  AesGcmMethods
+};
+
+PyMODINIT_FUNC
+PyInit_aesgcmpy(void)
+{
+  return PyModule_Create(&aesgcmpy);
+}
+
+int
+main(int argc, char *argv[])
+{
+  wchar_t *program = Py_DecodeLocale(argv[0], NULL);
+  if (program == NULL) {
+    fprintf(stderr, "Fatal error: cannot decode argv[0]\n");
+    exit(1);
+  }
+
+  /* Add a built-in module, before Py_Initialize */
+  PyImport_AppendInittab("aesgcmpy", PyInit_aesgcmpy);
+
+  /* Pass argv[0] to the Python interpreter */
+  Py_SetProgramName(program);
+
+  /* Initialize the Python interpreter.  Required. */
+  Py_Initialize();
+
+  /* Optionally import the module; alternatively,
+       import can be deferred until the embedded script
+       imports it. */
+  //PyImport_ImportModule("spam");
+
+    PyMem_RawFree(program);
+    return 0;
+}
+
+#endif

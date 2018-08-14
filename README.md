@@ -14,11 +14,11 @@ You will need `make`, `python` and `openssl` (developer tools).
 
 Type `make help` in the shell to get help on make targets
 
-There are two scripts aesgcm.py and aesgcm2.py, the latter being the
-default. The difference is in how the parameters are passed to the C
-API (in the former, they are passed in via explicit parameters to the
-function call, while in the latter, the Testcase object is passed in
-directly).
+The test script is aesgcm.py, and can be called with or without the
+ARGS=-p, the latter being the default. The difference is in how the
+parameters are passed to the C API (in the former, they are passed in
+via explicit parameters to the function call, while in the latter, the
+Testcase object is passed in directly).
 
 There are two testcase files - one is a set of test cases from IPsec,
 the second is the set of test cases in the McGrew paper. The sources
@@ -41,7 +41,7 @@ Simply type `make ` and it will make and run the test (assuming that you have th
     x86_64-linux-gnu-gcc -pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -fno-strict-aliasing -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I/usr/include/python2.7 -c aesgcm_python.c -o build/temp.linux-x86_64-2.7/aesgcm_python.o
     creating build/lib.linux-x86_64-2.7
     x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -Wl,-z,relro -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -Wl,-Bsymbolic-functions -Wl,-z,relro -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security build/temp.linux-x86_64-2.7/aesgcm_python.o -lcrypto -o build/lib.linux-x86_64-2.7/aesgcmpy.so
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm2.py -t ipsec_testcases 
+    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py ipsec_testcases
     14/14/14 - EPASS/DPASS/TOTAL
 
 
@@ -49,7 +49,7 @@ To run mcgrew_testcases, do the following
 
 
     rv@roke:~/aesgcmpy$ make TEST=mcgrew_testcases
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm2.py -t mcgrew_testcases 
+    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py mcgrew_testcases
     18/18/18 - EPASS/DPASS/TOTAL
 
 
@@ -66,7 +66,7 @@ The output of the test is a tuple of EPASS/DPASS/TOTAL, indicating the number of
 To enable debug and more verbose output pass -d (up to three times to increase verbosity of debug output) to the script (or via ARGS="-d" to make).
 
     rv@roke:~/aesgcmpy$ make ARGS=-d
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm2.py -t ipsec_testcases -d
+    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py -d ipsec_testcases
     Encrypt Test 1 
     AES GCM Testcase Encrypt:
     PASS
@@ -158,7 +158,7 @@ To enable debug and more verbose output pass -d (up to three times to increase v
 For more verbosity, add -d to the ARGS
 
     rv@roke:~/aesgcmpy$ make ARGS="-d -d"
-    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm2.py -t ipsec_testcases -d -d
+    PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm.py -d -d ipsec_testcases
     Encrypt Test 1 
     AES GCM Testcase Encrypt:
     KEY (16):

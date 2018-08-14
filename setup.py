@@ -16,7 +16,7 @@ import os
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-if os.environ.has_key('OPENSSL_INCLUDE'):
+if 'OPENSSL_INCLUDE' in os.environ:
     openssl_include = [os.environ['OPENSSL_INCLUDE']]
     openssl_lib = ["%s/../lib" % os.environ['OPENSSL_INCLUDE']]
 elif os.path.exists("/usr/local/opt/openssl"):
@@ -27,6 +27,7 @@ else:
 
 
 module1 = Extension('aesgcmpy',
+                    define_macros=[('NDEBUG', '1')],
                     include_dirs = openssl_include,
                     library_dirs = openssl_lib,
                     libraries = ['crypto'],

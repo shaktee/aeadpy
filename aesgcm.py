@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Testbed class for AES-GCM testbench
+# Testbed for AES-GCM testbench
 # Copyright (C) 2018 Rajesh Vaidheeswarrana
 
 # This program is free software: you can redistribute it and/or modify
@@ -15,73 +15,179 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import aesgcmpy
-debug = False
+from __future__ import print_function
+import sys
 
-
-def test(testcases):
-    for i in testcases:
-        print 'Encrypt Test %d' % i.instance,
-        if debug:
-            print ''
-
-        rets = aesgcmpy.encrypt(i.key, i.plaintext, i.nonce, i.aad)
-        ct = i.ctext_tag[:-16]
-        tag = i.ctext_tag[-16:]
-
-        # print rets
-
-        if rets['status'] != 1:
-            print 'FAILED - Bad status'
-        elif rets['ciphertext'] != ct:
-            print 'Ciphertext Mismatch'
-            print 'Got', i.bytes_to_string(rets['ciphertext'])
-            print 'Expected', i.bytes_to_string(ct)
-        elif rets['tag'] != tag:
-            print 'Tag Mismatch'
-            print 'Got', i.bytes_to_string(rets['tag'])
-            print 'Expected', i.bytes_to_string(tag)
-        else:
-            print 'PASS'
-            pass
-
-        print 'Decrypt Test %d' % i.instance,
-        if debug:
-            print ''
-        rets = aesgcmpy.decrypt(i.key, ct, i.nonce, i.aad, tag)
-        if rets['status'] != 1:
-            print 'FAILED - Bad status'
-        elif rets['plaintext'] != i.plaintext:
-            print 'Mismatch'
-            print 'Got', i.bytes_to_string(rets['plaintext'])
-            print 'Expected', i.bytes_to_string(i.plaintext)
-        else:
-            print 'PASS'
-            pass
+def set_libdir():
+    import os
+    vers = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
+    for d, dd, f in os.walk('build'):
+        if 'lib' in d and vers in d: sys.path.insert(0, d)
         pass
     pass
 
+debug = 0
+
+def test_with_params(testcase):
+    enc_success, dec_success = 0, 0
+    if debug: print('Encrypt Test %d' % testcase.instance)
+    rets = aesgcmpy.encrypt(testcase.key, testcase.plaintext, testcase.nonce, testcase.aad)
+    ct = testcase.ctext_tag[:-16]
+    tag = testcase.ctext_tag[-16:]
+
+    # print(rets)
+
+    if rets['status'] != 1:
+        print('FAILED - Bad status')
+    elif rets['ciphertext'] != ct:
+        print('Ciphertext Mismatch')
+        print('Got     : %s' % testcase.bytes_to_string(rets['ciphertext']))
+        print('Expected: %s' % testcase.bytes_to_string(ct))
+    elif rets['tag'] != tag:
+        print('Tag Mismatch')
+        print('Got     : %s' % testcase.bytes_to_string(rets['tag']))
+        print('Expected: %s' % testcase.bytes_to_string(tag))
+    else:
+        if debug: print('PASS')
+        enc_success += 1
+        pass
+
+    if debug: print('Decrypt Test %d' % testcase.instance)
+    rets = aesgcmpy.decrypt(testcase.key, ct, testcase.nonce, testcase.aad, tag)
+    if rets['status'] != 1:
+        print('FAILED - Bad status')
+    elif rets['plaintext'] != testcase.plaintext:
+        print('Mismatch')
+        print('Got     : %s' % testcase.bytes_to_string(rets['plaintext']))
+        print('Expected: %s' % testcase.bytes_to_string(testcase.plaintext))
+    else:
+        if debug: print('PASS')
+        dec_success += 1
+        pass
+    return enc_success, dec_success
+
+
+def test(testcases, objmode=True):
+    (total, enc_success, dec_success) = (0, 0, 0)
+    for testcase in testcases:
+        total += 1
+        if debug > 2:
+            print(testcase)
+        if objmode:
+            es, ds = test_with_testcase(testcase)
+        else:
+            es, ds = test_with_params(testcase)
+            pass
+        enc_success, dec_success = (enc_success + es), (dec_success + ds)
+        pass
+    print('%d/%d/%d - EPASS/DPASS/TOTAL' % (enc_success, dec_success, total))
+
+def test_with_testcase(testcase):
+    enc_success, dec_success = 0, 0
+    if debug: print('Encrypt Test %d' % testcase.instance)
+    ct = testcase.ctext_tag[:-16]
+    tag = testcase.ctext_tag[-16:]
+    try:
+        aesgcmpy.tc_encrypt(testcase)
+    
+        if testcase.enc_status != 1:
+            print('FAILED - Bad status %d' % testcase.enc_status)
+        
+        elif testcase.enc_ciphertext != ct:
+            if debug: print('Ciphertext Mismatch')
+            if debug > 1:
+                print('Got     : %s' % testcase.bytes_to_string(testcase.enc_ciphertext))
+                print('Expected: %s' % testcase.bytes_to_string(ct))
+                pass
+        elif testcase.enc_tag != tag:
+            if debug: print('Tag Mismatch')
+            if debug > 1:
+                print('Got     : %s' % testcase.bytes_to_string(testcase.enc_tag))
+                print('Expected: %s' % testcase.bytes_to_string(tag))
+                pass
+        else:
+            if debug: print('PASS')
+            enc_success += 1
+            pass
+    except Exception as e:
+        print("Error - %s" % e)
+        pass
+
+    
+    if debug: print('Decrypt Test %d' % testcase.instance)
+    try:
+        rets = aesgcmpy.tc_decrypt(testcase)
+        stat = ''
+        if testcase.dec_status != 1:
+            stat = 'FAIL - Bad status (continue to check plaintext)'
+            pass
+        else:
+            stat = 'PASS - TAG verified'
+            pass
+        if testcase.dec_plaintext != testcase.plaintext:
+            if debug: print('Mismatch')
+            if debug > 1:
+                print('Got     : %s' % testcase.bytes_to_string(testcase.dec_plaintext))
+                print('Expected: %s' % testcase.bytes_to_string(testcase.plaintext))
+                pass
+            stat += ', FAIL - Data Mismatch'
+            pass
+        else:
+            stat += ', PASS - Data match'
+            if testcase.dec_status == 1:
+                dec_success += 1
+                pass
+            pass
+        if debug: print(stat)
+        if debug > 2: print(dir(testcase))
+    except Exception as e:
+        print("Error - %s" % e)
+        
+    return enc_success, dec_success
+
+def usage(err=False):
+    if err: print(err)
+    ustr = """Usage: %s -h
+      %s [-d ...] [-p] <testcase_file> [<testcase_file> ...]
+    Where
+    -h    - This help
+    -d    - Enable Debug output. Can be called multiple times to increase verbosity
+    -p    - Parameter mode (instead of the default object mode) to pass args to the C API
+    """ % (sys.argv[0] * 2)
+    print(ustr)
+    sys.exit(-1 if err else 0)
+    pass
 
 if __name__ == '__main__':
     import getopt
-    import sys
     import importlib
-    testcases_file = 'ipsec_testcases'
+    import re
+
+    set_libdir() # need to set appropriate lib directory for use with
+                 # python 2 or 3 before importing aesgcmpy
+    import aesgcmpy
+
+    default_testcases_file = ['ipsec_testcases']
+    objmode = True
     try:
-        (opts, args) = getopt.getopt(sys.argv[1:], 'dht:', [])
-    except getopt.GetoptError, e:
-        print e
-        sys.exit(-1)
+        (opts, args) = getopt.getopt(sys.argv[1:], 'dhp', [])
+    except getopt.GetoptError as e:
+        usage(e)
+
     for (k, v) in opts:
         if k == '-h':
-            print '%s [-d|-h]' % sys.argv[0]
-            sys.exit(0)
+            usage()
         elif k == '-d':
             aesgcmpy.debug()
-            debug = True
-        elif k == '-t':
-            testcases_file = v
-            pass
+            debug += 1
+        elif k == '-p':
+            objmode = False
         pass
-    i = importlib.import_module(testcases_file)
-    test(testcases=i.testcases)
+
+    if  args == []:
+        args = default_testcases_file
+        pass
+    for testcases_file in args:
+        print("Using testcases from %s" % testcases_file) 
+        i = importlib.import_module(re.sub('.py', '', testcases_file))
+        test(testcases=i.testcases, objmode=objmode)

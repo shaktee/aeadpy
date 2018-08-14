@@ -13,30 +13,31 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-SCRIPT := aesgcm2.py
-TEST := ipsec_testcases
-PYTHONPATH = $(shell echo build/lib*)
-
+SCRIPT := aesgcm.py
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
+TEST := ipsec_testcases mcgrew_testcases
+PYTHON := python
 all: run
 
-build:
-	python setup.py build
+bld:
+	$(PYTHON) setup.py build
 clean:
 	rm -rf build *~ core* *pyc
 
-run: build
-	PYTHONPATH=$(PYTHONPATH) python $(SCRIPT) -t $(TEST) $(ARGS)
+run: bld
+	$(PYTHON) $(SCRIPT) $(ARGS) $(TEST)
 
 debug:
-	PYTHONPATH=$(PYTHONPATH) gdb python core
+	@echo execute PYTHONPATH=build/lib* gdb $(PYTHON) core
 
 shell:
-	PYTHONPATH=$(PYTHONPATH) python
+	@echo execute PYTHONPATH=build/lib* $(PYTHON)
 
 help:
 	@echo Make targets are:
 	@echo build - build the libraries
-	@echo run - run the testcase specified by TEST variable \(default: $(TEST)\)
+	@echo run - run the testcases specified by TEST variable \(default: $(TEST)\)
 	@echo clean - clean the area
 	@echo debug - debug a core file
-	@echo shell - drop into a python shell
+	@echo shell - drop into a $(PYTHON) shell

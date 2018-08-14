@@ -1,6 +1,3 @@
-import struct
-import string
-
 # Testcase class for AES-GCM testbench
 # Copyright (C) 2018 Rajesh Vaidheeswarrana
 
@@ -16,11 +13,15 @@ import string
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+import struct
+import string
+import sys
 class Testcase:
     __instance = 1
     def __init__(self, *args, **kwargs):
+        self.attrs = []
         for k in kwargs:
+            self.attrs.append(k)
             setattr(self, k, self.string_to_bytes(kwargs[k]))
             pass
         self.instance = Testcase.__instance
@@ -31,11 +32,34 @@ class Testcase:
         x = ''.join(x.split())
         if not all(c in string.hexdigits for c in x):
             return x
-        out = ''
-        for i in range(0, len(x), 2):
-            out += struct.pack('B', int(x[i:i+2], 16))
-            pass
-        #print len(out)
-        return out
+        if sys.version_info.major < 3:
+            out = ''
+            for i in range(0, len(x), 2):
+                z = struct.pack('B', int(x[i:i+2], 16))
+                out += z
+                pass
+            #print len(out)
+            return out
+        else:
+            out = b''
+            for i in range(0, len(x), 2):
+                out += int(x[i:i+2], 16).to_bytes(1,byteorder='big')
+                pass
+            return out
+        
     def bytes_to_string(self, x):
-        return "".join(["%02x" %i for i in struct.unpack('B' * len(x), x)])
+        if sys.version_info.major < 3:
+            return "".join(["%02x" %i for i in struct.unpack('B' * len(x), x)])
+        else:
+            return "".join(["%02x" % int.from_bytes(i, byteorder='big') for i in x])
+    def __repr__(self):
+        out = "Testcase %d\n" % self.instance
+        for i in self.attrs:
+            _bytes = getattr(self, i)
+            if not all(c in string.hexdigits for c in _bytes):
+                data = _bytes
+            else:
+                data = self.bytes_to_string(_bytes)
+            out += "%10s: %s\n" % (i, data)
+            pass
+        return out
