@@ -1,9 +1,9 @@
-# aesgcmpy
-AES-GCM Testcases with a python wrapper
+# aeadpy
+AEAD (AES-GCM, Chacha20-Poly1305) Testcases with a python wrapper
 
 Description
 ===========
-This is a simple python based validation bench of openssl's AES-GCM
+This is a simple python based validation bench of openssl's AEAD
 implementation.
 
 ## Prerequisites
@@ -14,7 +14,7 @@ You will need `make`, `python` and `openssl` (developer tools).
 
 Type `make help` in the shell to get help on make targets
 
-The test script is aesgcm.py, and can be called with or without the
+The test script is aeadpy, and can be called with or without the
 ARGS=-p, the latter being the default. The difference is in how the
 parameters are passed to the C API (in the former, they are passed in
 via explicit parameters to the function call, while in the latter, the
