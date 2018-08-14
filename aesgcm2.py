@@ -93,7 +93,7 @@ if __name__ == '__main__':
     import getopt
     import sys
     import importlib
-    testcases_file = 'testcases'
+    testcases_file = 'ipsec_testcases'
     try:
         (opts, args) = getopt.getopt(sys.argv[1:], 'dht:', [])
     except getopt.GetoptError, e:

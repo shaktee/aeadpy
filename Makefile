@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 SCRIPT := aesgcm2.py
-TEST := testcases
+TEST := ipsec_testcases
 PYTHONPATH = $(shell echo build/lib*)
 
 all: run
