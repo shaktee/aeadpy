@@ -30,7 +30,7 @@ bench by modeling the file similar to the ones provided.
 ## Building
 
 Simply type `make ` and it will make and run the test (assuming that you have the prerequisites installed)
-`
+
     rv@roke:~/aesgcmpy$ make
     python setup.py build
     running build
@@ -43,15 +43,15 @@ Simply type `make ` and it will make and run the test (assuming that you have th
     x86_64-linux-gnu-gcc -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions -Wl,-Bsymbolic-functions -Wl,-z,relro -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security -Wl,-Bsymbolic-functions -Wl,-z,relro -Wdate-time -D_FORTIFY_SOURCE=2 -g -fdebug-prefix-map=/build/python2.7-nbjU53/python2.7-2.7.15~rc1=. -fstack-protector-strong -Wformat -Werror=format-security build/temp.linux-x86_64-2.7/aesgcm_python.o -lcrypto -o build/lib.linux-x86_64-2.7/aesgcmpy.so
     PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm2.py -t ipsec_testcases 
     14/14/14 - EPASS/DPASS/TOTAL
-`
+
 
 To run mcgrew_testcases, do the following
 
-`
+
     rv@roke:~/aesgcmpy$ make TEST=mcgrew_testcases
     PYTHONPATH=build/lib.linux-x86_64-2.7 python aesgcm2.py -t mcgrew_testcases 
     18/18/18 - EPASS/DPASS/TOTAL
-`
+
 
 ## Running the test
 
