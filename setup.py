@@ -31,7 +31,7 @@ module1 = Extension('aeadpy',
                     include_dirs = openssl_include,
                     library_dirs = openssl_lib,
                     libraries = ['crypto'],
-                    sources = ['aesgcm_python.c'])
+                    sources = ['aead_python.c'])
 
 setup (name = 'Aeadpy',
        version = '1.0',

@@ -296,7 +296,13 @@ aead_testcase_encrypt(PyObject *self, PyObject *args)
 	return NULL;
     }
 
+#if PY_MAJOR_VERSION < 3
     alg = PyString_AsString(algo);
+#else
+    PyObject* str = PyUnicode_AsEncodedString(algo, "utf-8", "~E~");
+    alg = PyBytes_AsString(str);
+#endif
+
     if (Debug > 1) {
 	printf("%s Testcase Encrypt:\n", alg);
 	printf("KEY (%d):\n", keylen);
@@ -350,23 +356,30 @@ aead_testcase_decrypt(PyObject *self, PyObject *args)
 {
     EVP_CIPHER_CTX *ctx;
     int outlen, rv, olen;
-    PyObject *testcase;
-    Py_buffer alg, key, ct, aad, iv;
-    int alglen, keylen, ctlen, aadlen, ivlen;
+    PyObject *testcase, *algo;
+    char *alg;
+    Py_buffer key, ct, aad, iv;
+    int keylen, ctlen, aadlen, ivlen;
     if (!PyArg_ParseTuple(args, "O:tc_decrypt", &testcase)) {
 	PyErr_SetString(AeadpyError, "Usage: tc_encrypt <testcase>");
 	return NULL;
     }
     if (! (get_from_testcase(testcase, "key", &key, &keylen) &&
-	   get_from_testcase(testcase, "algorithm", &alg, &alglen) &&
+	   (algo = get_str_from_testcase(testcase, "algorithm")) &&
 	   get_from_testcase(testcase, "ctext_tag", &ct, &ctlen) &&
 	   get_from_testcase(testcase, "nonce", &iv, &ivlen) &&
 	   get_from_testcase(testcase, "aad", &aad, &aadlen))) {
 	return NULL;
     }
+#if PY_MAJOR_VERSION < 3
+    alg = PyString_AsString(algo);
+#else
+    PyObject* str = PyUnicode_AsEncodedString(algo, "utf-8", "~E~");
+    alg = PyBytes_AsString(str);
+#endif
 
     if (Debug > 1) {
-	printf("%s Decrypt:\n", (char *)alg.buf);
+	printf("%s Decrypt:\n", alg);
 	printf("Ciphertext (%d):\n", ctlen-16);
 	BIO_dump_fp(stdout, ct.buf, ctlen-16);
 	printf("TAG (16):\n");
@@ -378,7 +391,7 @@ aead_testcase_decrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
-    set_cipher(ctx, alg.buf, keylen);
+    set_cipher(ctx, alg, keylen);
     /* Set IV length, omit for 96 bits */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Specify key and IV */
