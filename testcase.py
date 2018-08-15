@@ -48,18 +48,31 @@ class Testcase:
             return out
         
     def bytes_to_string(self, x):
+        out = ''
+        #print(x)
         if sys.version_info.major < 3:
-            return "".join(["%02x" %i for i in struct.unpack('B' * len(x), x)])
+            #if not all(i in string.hexdigits for i in x):  return x
+            pass
         else:
-            return "".join(["%02x" % int.from_bytes(i, byteorder='big') for i in x])
+            if type(x) == type(''): return x
+
+        while x:
+            _bytes = x[:16]
+            if sys.version_info.major < 3:
+                out += " ".join(["%02x" % ord(i)  for i in _bytes])
+            else:
+                out += _bytes.hex()
+            out += "\n\t"
+            x = x[16:]
+        out += '\n'
+        return out
+
     def __repr__(self):
         out = "Testcase %d\n" % self.instance
         for i in self.attrs:
-            _bytes = getattr(self, i)
-            if not all(c in string.hexdigits for c in _bytes):
-                data = _bytes
-            else:
-                data = self.bytes_to_string(_bytes)
-            out += "%10s: %s\n" % (i, data)
+            #print(i)
+            data = self.bytes_to_string(getattr(self, i))
+            #print(data)
+            out += "%10s: %s" % (i, data)
             pass
         return out
