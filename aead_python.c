@@ -43,24 +43,33 @@ static PyObject *AeadpyError;
 static int Debug = 0;
 
 static void
-set_cipher(EVP_CIPHER_CTX *ctx, const char *alg, int keylen)
+set_cipher(EVP_CIPHER_CTX *ctx, const char *alg, int keylen, int enc)
 {
-   /* Set cipher type and mode */
-    if (strcmp(alg, "CHACHA20_POLY1305") == 0) {
-	EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL);
+    int (*func)(EVP_CIPHER_CTX *,const EVP_CIPHER *,
+                ENGINE *, unsigned char *, unsigned char *);
+    const EVP_CIPHER *cipher = NULL;
+
+    func = enc ? EVP_EncryptInit_ex : EVP_DecryptInit_ex;
+    /* Set cipher type and mode */
+
+    if (strcmp(alg, "CHACHA20") == 0) {
+	cipher = EVP_chacha20();
+    } else if (strcmp(alg, "CHACHA20_POLY1305") == 0) {
+	cipher = EVP_chacha20_poly1305();
     } else {
 	switch (keylen) {
 	case 16:
-	    EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
+	    cipher = EVP_aes_128_gcm();
 	    break;
 	case 24:
-	    EVP_EncryptInit_ex(ctx, EVP_aes_192_gcm(), NULL, NULL, NULL);
+	    cipher = EVP_aes_192_gcm();
 	    break;
 	case 32:
-	    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
+	    cipher = EVP_aes_256_gcm();
 	    break;
 	}
     }
+    func(ctx, cipher, NULL, NULL, NULL);
 }
 
 static PyObject *
@@ -106,7 +115,7 @@ aead_encrypt(PyObject *self, PyObject *args)
       return PyErr_NoMemory();
     }
     ctx = EVP_CIPHER_CTX_new();
-    set_cipher(ctx, alg, keylen);
+    set_cipher(ctx, alg, keylen, 1);
      /* Set IV length if default 96 bits is not appropriate */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Initialise key and IV */
@@ -171,7 +180,7 @@ aead_decrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
-    set_cipher(ctx, alg, keylen);
+    set_cipher(ctx, alg, keylen, 0);
     /* Set IV length, omit for 96 bits */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Specify key and IV */
@@ -320,7 +329,7 @@ aead_testcase_encrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Set cipher type and mode */
-    set_cipher(ctx, alg, keylen);
+    set_cipher(ctx, alg, keylen, 1);
     /* Set IV length if default 96 bits is not appropriate */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Initialise key and IV */
@@ -391,7 +400,7 @@ aead_testcase_decrypt(PyObject *self, PyObject *args)
     }
     ctx = EVP_CIPHER_CTX_new();
     /* Select cipher */
-    set_cipher(ctx, alg, keylen);
+    set_cipher(ctx, alg, keylen, 0);
     /* Set IV length, omit for 96 bits */
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
     /* Specify key and IV */
