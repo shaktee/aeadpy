@@ -22,7 +22,10 @@ class Testcase:
         self.attrs = []
         for k in kwargs:
             self.attrs.append(k)
-            setattr(self, k, self.string_to_bytes(kwargs[k]))
+            if type(kwargs[k]) == str:
+                setattr(self, k, self.string_to_bytes(kwargs[k]))
+            else:
+                setattr(self, k, kwargs[k])
             pass
         self.instance = Testcase.__instance
         Testcase.__instance += 1
@@ -71,7 +74,10 @@ class Testcase:
         out = "Testcase %d\n" % self.instance
         for i in self.attrs:
             #print(i)
-            data = self.bytes_to_string(getattr(self, i))
+            if type(getattr(self, i)) == bytes:
+                data = self.bytes_to_string(getattr(self, i))
+            else:
+                data = str(getattr(self, i))
             #print(data)
             out += "%10s: %s" % (i, data)
             pass

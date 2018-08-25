@@ -91,8 +91,16 @@ def test_with_testcase(testcase):
     if debug: print('Encrypt Test %d - ' % testcase.instance, end=' ')
     ct = testcase.ctext_tag[:-16]
     tag = testcase.ctext_tag[-16:]
+    if hasattr(testcase,"incremental") and testcase.incremental:
+        if debug: print('Incremental - ', end=' ')
+        enc = aeadpy.tc_encrypt_incremental
+        dec = aeadpy.tc_decrypt_incremental
+    else:
+        enc = aeadpy.tc_encrypt
+        dec = aeadpy.tc_decrypt
+
     try:
-        aeadpy.tc_encrypt(testcase)
+        enc(testcase)
     
         if testcase.enc_status != 1:
             print('FAILED - Bad status %d' % testcase.enc_status)
@@ -120,7 +128,7 @@ def test_with_testcase(testcase):
     
     if debug: print('Decrypt Test %d' % testcase.instance, end=' ')
     try:
-        aeadpy.tc_decrypt(testcase)
+        dec(testcase)
         stat = ''
         if testcase.dec_status != 1:
             stat = 'FAIL - Bad status (continue to check plaintext)'

@@ -430,11 +430,191 @@ aead_testcase_decrypt(PyObject *self, PyObject *args)
     return Py_None;
 }
 
+static PyObject *
+aead_testcase_encrypt_incremental(PyObject *self, PyObject *args)
+{
+    EVP_CIPHER_CTX *ctx;
+    int outlen, rv, olen;
+    unsigned char tag[16];
+    char *alg;
+    PyObject *testcase, *algo;
+    Py_buffer key, pt, aad, iv;
+    int keylen, ptlen, aadlen, ivlen;
+    if (!PyArg_ParseTuple(args, "O:tc_encrypt", &testcase)) {
+	PyErr_SetString(AeadpyError, "Usage: tc_encrypt <testcase>");
+	return NULL;
+    }
+    if (! (
+	   (algo = get_str_from_testcase(testcase, "algorithm")) &&
+	   get_from_testcase(testcase, "plaintext", &pt, &ptlen) &&
+	   get_from_testcase(testcase, "key", &key, &keylen) &&
+	   get_from_testcase(testcase, "nonce", &iv, &ivlen) &&
+	   get_from_testcase(testcase, "aad", &aad, &aadlen))) {
+	return NULL;
+    }
+
+#if PY_MAJOR_VERSION < 3
+    alg = PyString_AsString(algo);
+#else
+    PyObject* str = PyUnicode_AsEncodedString(algo, "utf-8", "~E~");
+    alg = PyBytes_AsString(str);
+#endif
+
+    if (Debug > 1) {
+	printf("%s Testcase Encrypt:\n", alg);
+	printf("KEY (%d):\n", keylen);
+	BIO_dump_fp(stdout, key.buf, keylen);
+	printf("IV (%d):\n", ivlen);
+	BIO_dump_fp(stdout, iv.buf, ivlen);
+	printf("AAD (%d):\n", aadlen);
+	BIO_dump_fp(stdout, aad.buf, aadlen);
+	printf("Plaintext (%d):\n", ptlen);
+	BIO_dump_fp(stdout, pt.buf, ptlen);
+    }
+    unsigned char *outbuf = (unsigned char *)PyMem_Malloc(ptlen+16);
+    if(!outbuf) {
+      return PyErr_NoMemory();
+    }
+    ctx = EVP_CIPHER_CTX_new();
+    /* Set cipher type and mode */
+    set_cipher(ctx, alg, keylen, 1);
+    /* Set IV length if default 96 bits is not appropriate */
+    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
+    /* Initialise key and IV */
+    EVP_EncryptInit_ex(ctx, NULL, NULL, key.buf, iv.buf);
+    /* Zero or more calls to specify any AAD */
+    if (aadlen) EVP_EncryptUpdate(ctx, NULL, &outlen, aad.buf, aadlen);
+    /* Encrypt plaintext incrementally */
+    outlen = 0;
+    int numblocks_64B = ptlen >> 6;
+    int rembytes = ptlen % 64;
+    int ol;
+    for (int i = 0; i < numblocks_64B; ++i) {
+	EVP_EncryptUpdate(ctx, outbuf+(i<<6), &ol, pt.buf+(i<<6), 64);
+	if (Debug > 1) {
+	    printf("Ciphertext (%d/%d):\n", 64, ol);
+	    BIO_dump_fp(stdout, (const char *)outbuf+(i<<6), ol);
+	}
+	outlen += ol;
+    }
+    if (rembytes) {
+	EVP_EncryptUpdate(ctx, outbuf+outlen, &ol, pt.buf+outlen, rembytes);
+	if (Debug > 1) {
+	    printf("Ciphertext (%d/%d):\n", ol, rembytes);
+	    BIO_dump_fp(stdout, (const char *)outbuf+outlen, ol);
+	}
+	outlen += ol;
+    }
+    /* Finalise: note get no output for GCM */
+    EVP_EncryptFinal_ex(ctx, outbuf+outlen, &olen);
+
+    /* Get tag */
+    rv = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag);
+    if (Debug > 1) {
+	printf("Tag (%d):\n", 16);
+	BIO_dump_fp(stdout, (const char *)tag, 16);
+    }
+    EVP_CIPHER_CTX_free(ctx);
+    set_buf_to_testcase(testcase, "enc_ciphertext", outbuf, outlen);
+    set_buf_to_testcase(testcase, "enc_tag", tag, 16);
+    set_int_to_testcase(testcase, "enc_status", rv);
+    PyMem_Free(outbuf);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject *
+aead_testcase_decrypt_incremental(PyObject *self, PyObject *args)
+{
+    EVP_CIPHER_CTX *ctx;
+    int outlen, rv, olen;
+    PyObject *testcase, *algo;
+    char *alg;
+    Py_buffer key, ct, aad, iv;
+    int keylen, ctlen, aadlen, ivlen;
+    if (!PyArg_ParseTuple(args, "O:tc_decrypt", &testcase)) {
+	PyErr_SetString(AeadpyError, "Usage: tc_encrypt <testcase>");
+	return NULL;
+    }
+    if (! (get_from_testcase(testcase, "key", &key, &keylen) &&
+	   (algo = get_str_from_testcase(testcase, "algorithm")) &&
+	   get_from_testcase(testcase, "ctext_tag", &ct, &ctlen) &&
+	   get_from_testcase(testcase, "nonce", &iv, &ivlen) &&
+	   get_from_testcase(testcase, "aad", &aad, &aadlen))) {
+	return NULL;
+    }
+#if PY_MAJOR_VERSION < 3
+    alg = PyString_AsString(algo);
+#else
+    PyObject* str = PyUnicode_AsEncodedString(algo, "utf-8", "~E~");
+    alg = PyBytes_AsString(str);
+#endif
+
+    if (Debug > 1) {
+	printf("%s Decrypt:\n", alg);
+	printf("Ciphertext (%d):\n", ctlen-16);
+	BIO_dump_fp(stdout, ct.buf, ctlen-16);
+	printf("TAG (16):\n");
+	BIO_dump_fp(stdout, ct.buf+ctlen-16, 16);
+    }
+    unsigned char *outbuf = (unsigned char *)PyMem_Malloc(ctlen);
+    if(!outbuf) {
+      return PyErr_NoMemory();
+    }
+    ctx = EVP_CIPHER_CTX_new();
+    /* Select cipher */
+    set_cipher(ctx, alg, keylen, 0);
+    /* Set IV length, omit for 96 bits */
+    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL);
+    /* Specify key and IV */
+    EVP_DecryptInit_ex(ctx, NULL, NULL, key.buf, iv.buf);
+    /* Zero or more calls to specify any AAD */
+    if (aadlen) EVP_DecryptUpdate(ctx, NULL, &outlen, aad.buf, aadlen);
+    outlen = 0;
+    /* Decrypt plaintext incrementally */
+    int numblocks_64B = (ctlen-16) >> 6;
+    int rembytes = (ctlen-16) % 64;
+    int ol;
+    for (int i = 0; i < numblocks_64B; ++i) {
+	EVP_DecryptUpdate(ctx, outbuf+(i<<6), &ol, ct.buf+(i<<6), 64);
+	if (Debug > 1) {
+	    printf("Plaintext (%d/%d):\n", 64, ol);
+	    BIO_dump_fp(stdout, (const char *)outbuf+(i<<6), ol);
+	}
+	outlen += ol;
+    }
+    if (rembytes) {
+	EVP_DecryptUpdate(ctx, outbuf+outlen, &ol, ct.buf+outlen, rembytes);
+	if (Debug > 1) {
+	    printf("Plaintext (%d/%d):\n", ol, rembytes);
+	    BIO_dump_fp(stdout, (const char *)outbuf+outlen, ol);
+	}
+	outlen += ol;
+    }
+    /* Set expected tag value. */
+    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, ct.buf+ctlen-16);
+    /* Finalise: note get no output for GCM */
+    rv = EVP_DecryptFinal_ex(ctx, outbuf, &olen);
+    /*
+     * Print out return value. If this is not successful authentication
+     * failed and plaintext is not trustworthy.
+     */
+    if (Debug > 1) printf("Tag Verify %s\n", rv > 0 ? "Successful!" : "Failed!");
+    EVP_CIPHER_CTX_free(ctx);
+    set_buf_to_testcase(testcase, "dec_plaintext", outbuf, outlen);
+    set_int_to_testcase(testcase, "dec_status", rv);
+    PyMem_Free(outbuf);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
 static PyMethodDef AeadMethods[] = {
     {"encrypt",  aead_encrypt, METH_VARARGS, "Encrypt with AES-GCM or CHACHA20_POLY1305."},
     {"decrypt",  aead_decrypt, METH_VARARGS, "Decrypt with AES-GCM or CHACHA20_POLY1305."},
     {"tc_encrypt",  aead_testcase_encrypt, METH_VARARGS, "Encrypt testcase with AES-GCM or CHACHA20_POLY1305."},
     {"tc_decrypt",  aead_testcase_decrypt, METH_VARARGS, "Decrypt testcase with AES-GCM or CHACHA20_POLY1305."},
+    {"tc_encrypt_incremental",  aead_testcase_encrypt_incremental, METH_VARARGS, "Encrypt testcase with AES-GCM or CHACHA20_POLY1305 incrementally."},
+    {"tc_decrypt_incremental",  aead_testcase_decrypt_incremental, METH_VARARGS, "Decrypt testcase with AES-GCM or CHACHA20_POLY1305 incrementally."},
     {"debug",    aead_debug,       METH_VARARGS, "Debug."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
